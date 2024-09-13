@@ -1,11 +1,13 @@
 {
   "name": "@dylan_roth/cligame",
-  "version": "1.0.1",
-  "main": "index.js",
+  "version": "1.1.0",
+  "main": "./ts-built/index.js",
   "type": "module",
-  "bin": "./index.js",
+  "bin": "./ts-built/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "ts-dev": "tsc -w",
+    "dev": "node ./ts-built/index.js"
   },
   "keywords": [],
   "author": "",
