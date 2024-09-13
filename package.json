@@ -1,6 +1,6 @@
 {
-  "name": "cligame",
-  "version": "1.0.0",
+  "name": "@dylan_roth/cligame",
+  "version": "1.0.1",
   "main": "index.js",
   "type": "module",
   "bin": "./index.js",

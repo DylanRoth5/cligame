@@ -79,7 +79,7 @@ function winner() {
   });
 }
 
-// await welcome();
+await welcome();
 
 await askName();
 
