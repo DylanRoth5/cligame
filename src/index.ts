@@ -134,14 +134,8 @@ async function welcome_user(): Promise<void> {
   });
 }
 
-// * mkdir : crea una carpeta.
-// * touch : crea un archivo.
-// * cd : permite entrar en una carpeta.
-// * ls: lista todos los archivos y carpetas que contiene la carpeta ordenados por nombre.
-// * lsp: lista todo los archivos y los guarda en un archivo de texto “display.txt”
-// * pwd: Indica el path donde nos encontramos.
-
 class Folder {
+  // Tenga en cuenta que una carpeta puede contener carpetas y archivos.
   public content: (File | Folder)[] = [];
   public prevDir: Folder;
 
@@ -185,8 +179,11 @@ class File {
 async function terminal(user: User) {
   await welcome_user();
   await sleep(500);
-  const spinner = createSpinner(user.name + "@tscli ").start();
+  const spinner = createSpinner(
+    user.name + "@tscli ... write help or -h for help"
+  ).start();
   spinner.success();
+  // El sistema de archivos cuenta con una carpeta root la cual puede contener archivos o carpetas.
   const root = new Folder("~/");
   let currentDir: Folder = root;
   let pwd = currentDir.name;
@@ -209,20 +206,32 @@ async function terminal(user: User) {
         break;
       case "mkdir":
         if (typeof command[1] === "string") {
-          let new_folder = new Folder(command[1]);
-          new_folder.prevDir = currentDir;
-          currentDir.addFolder(new_folder);
+          if (!(await noRepeat(command[1], currentDir))) {
+            let new_folder = new Folder(command[1]);
+            new_folder.prevDir = currentDir;
+            currentDir.addFolder(new_folder);
+          } else {
+            spinner.error({
+              text: `folder or file ${command[1]} already exist`,
+            });
+          }
         } else {
-          currentDir.addFolder(new Folder(await ask("name: ", "new folder")));
+          spinner.error({ text: `Expecify a name` });
         }
         break;
       case "touch":
         if (typeof command[1] === "string") {
-          let new_file = new File(command[1]);
-          if (typeof command[2] === "string") {
-            new_file.setContent(command[2]);
+          if (!(await noRepeat(command[1], currentDir))) {
+            let new_file = new File(command[1]);
+            if (typeof command[2] === "string") {
+              new_file.setContent(command[2]);
+            }
+            currentDir.addFile(new_file);
+          } else {
+            if (typeof command[2] === "string") {
+              currentDir.getFile(command[1]).setContent(command[2]);
+            }
           }
-          currentDir.addFile(new_file);
         } else {
           spinner.error({ text: `Expecify a name` });
         }
@@ -253,7 +262,11 @@ async function terminal(user: User) {
           write(chalk.green(".."));
         }
         currentDir.content.forEach((f) => {
-          write(chalk.green(f.name));
+          if (f instanceof Folder) {
+            write(chalk.green(f.name));
+          } else {
+            write(chalk.yellow.italic(f.name));
+          }
         });
         break;
       case "lsp":
@@ -284,6 +297,18 @@ async function terminal(user: User) {
         break;
     }
   }
+}
+
+async function noRepeat(name: string, folder: Folder): Promise<boolean> {
+  // Los archivos y carpetas cuentan con un path que debe ser único, dado que una carpeta no puede contener 2 archivos con el mismo nombre.
+  if (
+    folder.content.find((x) => {
+      return x.name == name;
+    })
+  ) {
+    return true;
+  }
+  return false;
 }
 
 async function write(message: string): Promise<void> {
