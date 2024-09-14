@@ -67,71 +67,11 @@ async function question(choices: string[]): Promise<void> {
 }
 
 class User {
-  constructor(public name: string, public password: string) {}
-}
-
-const users: User[] = [];
-
-users.push(new User("Player", "Player"));
-
-async function handleLogin(option: string): Promise<void> {
-  const spinner = createSpinner("Checking answer...").start();
-  await sleep();
-
-  if (option == "login") {
-    spinner.success({ text: `Provide name and password` });
-    let name = await ask("Enter Username here:");
-    // write(name);
-    let password = await ask("Enter Password here:");
-    // write(password);
-    let user = new User(name, password);
-    // write(user);
-    if (
-      users.some((u) => {
-        return u.name == user.name && u.password == user.password;
-      })
-    ) {
-      spinner.success({ text: `Found ${user.name}` });
-      terminal(user);
-    }
-  } else if (option == "new account") {
-    spinner.success({ text: `Provide name and password` });
-    let name2 = chalk.bgGreen(" " + (await ask("Enter Username here:")) + " ");
-    let password2 = chalk.bgGreen(
-      " " + (await ask("Enter Password here:")) + " "
-    );
-    let user = new User(name2, password2);
-    if (
-      users.find((u) => {
-        u = user;
-      })
-    ) {
-      write("that user already exist");
-    } else {
-      users.push(user);
-    }
-  } else if (option == "game") {
-    spinner.success({ text: `Enjoy` });
-    game();
-  } else {
-    spinner.error({ text: `💀💀💀 Goodbye` });
-    process.exit(1);
-  }
-}
-
-async function welcome_user(): Promise<void> {
-  console.clear();
-  const msg = `TS-cli`;
-
-  figlet(msg, (err, data) => {
-    if (err) {
-      write("Something went wrong...");
-      console.dir(err);
-      return;
-    }
-    // Call `multiline` to apply gradient to the figlet output
-    write(gradient.vice.multiline(data));
-  });
+  constructor(
+    public name: string,
+    public password: string,
+    public pc: Folder
+  ) {}
 }
 
 class Folder {
@@ -176,21 +116,85 @@ class File {
   }
 }
 
+let users: User[] = [];
+
+users.push(new User("Player", "Player", new Folder(`Player's pc`)));
+
+async function handleLogin(option: string): Promise<void> {
+  const spinner = createSpinner("Checking answer...").start();
+  await sleep();
+
+  if (option == "login") {
+    spinner.success({ text: `Provide name and password` });
+    let name = await ask("Enter Username here:");
+    // write(name);
+    let password = await ask("Enter Password here:");
+    // write(password);
+    let user = new User(name, password, new Folder(`${name}@tscli ~/`));
+    // write(user); `${User.name}'s pc`
+    if (
+      users.some((u) => {
+        return u.name == user.name && u.password == user.password;
+      })
+    ) {
+      spinner.success({ text: `Found ${user.name}` });
+      await terminal(user);
+    }
+  } else if (option == "new account") {
+    spinner.success({ text: `Provide name and password` });
+    let name2 = await ask("Enter Username here:");
+    let password2 = await ask("Enter Password here:");
+    let user = new User(name2, password2, new Folder(`${name2}@tscli ~/`));
+    if (
+      users.find((u) => {
+        return u.name == user.name && u.password == user.password;
+      })
+    ) {
+      write("that user already exist");
+    } else {
+      users.push(user);
+    }
+  } else if (option == "game") {
+    spinner.success({ text: `Enjoy` });
+    game();
+  } else {
+    spinner.error({ text: `💀💀💀 Goodbye` });
+    process.exit(1);
+  }
+}
+
+async function welcome_user(): Promise<void> {
+  console.clear();
+  const msg = `TS-cli`;
+
+  figlet(msg, (err, data) => {
+    if (err) {
+      write("Something went wrong...");
+      console.dir(err);
+      return;
+    }
+    // Call `multiline` to apply gradient to the figlet output
+    write(gradient.vice.multiline(data));
+  });
+}
 async function terminal(user: User) {
+  let current_user = users.find((u) => {
+    return u.name == user.name;
+  });
   await welcome_user();
   await sleep(500);
-  const spinner = createSpinner(
-    user.name + "@tscli ... write help or -h for help"
-  ).start();
+  const spinner = createSpinner(current_user.name + "@tscli").start();
   spinner.success();
+  console.log(chalk.dim.italic("\n write help or -h for help"));
   // El sistema de archivos cuenta con una carpeta root la cual puede contener archivos o carpetas.
-  const root = new Folder("~/");
+  const root = current_user.pc;
   let currentDir: Folder = root;
   let pwd = currentDir.name;
   let symbol = ">:";
   let history: string[] = [];
 
-  while (true) {
+  let flag = true;
+  while (flag) {
     let input = await prompt(pwd + " " + symbol);
     history.push(input);
     let command = input.split(" ");
@@ -291,7 +295,7 @@ async function terminal(user: User) {
         break;
       case "exit":
         spinner.error({ text: `Goodbye` });
-        process.exit(1);
+        flag = false;
       default:
         write("Unknown command");
         break;
@@ -314,8 +318,6 @@ async function noRepeat(name: string, folder: Folder): Promise<boolean> {
 async function write(message: string): Promise<void> {
   message.split("\n").forEach((line) => console.log(line));
 }
-
-console.log(chalk.bgGreen("hi mom"));
 
 async function askName(): Promise<void> {
   const answers = await inquirer.prompt({
@@ -378,8 +380,14 @@ async function game() {
   await question1();
   await winner();
   await sleep(500);
-  process.exit(1);
 }
 
+async function start() {
+  while (true) {
+    let key = await question(["login", "new account", "- game", "Goodbye"]);
+  }
+}
+
+await start();
+
 console.clear();
-question(["login", "new account", "game", "Goodbye"]);
